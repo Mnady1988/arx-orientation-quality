@@ -56,6 +56,9 @@ h3{font-size:.78rem;text-transform:uppercase;letter-spacing:.08em;color:var(--mu
 .focus{background:var(--gold-soft)!important}
 button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible,label.rate:focus-within{outline:2px solid var(--accent);outline-offset:2px}
 .panel{display:grid;gap:16px}
+.summary{margin-top:14px;padding:14px 16px;border-radius:var(--r);background:var(--accent-soft)}
+.summary-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,180px),1fr));gap:12px 18px}
+.summary-grid .lbl{display:block;margin-bottom:2px}
 .login{max-width:380px;margin:24px auto 0}
 .who-box{display:flex;align-items:center;gap:6px;color:var(--muted);font-size:.88rem;flex-wrap:wrap}
 header.top{align-items:center!important}
@@ -153,7 +156,7 @@ label.rate input:checked + span{background:var(--accent);border-color:var(--acce
     <div class="who-box"><span id="who"></span><button type="button" class="btn ghost" id="btn-logout">Log out</button></div>
     <nav class="tabs" role="tablist" aria-label="Sections">
       <button role="tab" id="tab-dash" aria-selected="true" data-tab="dash">Dashboard</button>
-      <button role="tab" id="tab-form" aria-selected="false" data-tab="form">Log feedback</button>
+      <button role="tab" id="tab-queue" aria-selected="false" data-tab="queue">Orientations</button>
       <button role="tab" id="tab-log" aria-selected="false" data-tab="log">Records</button>
       <button role="tab" id="tab-guide" aria-selected="false" data-tab="guide">Scoring guide</button>
     </nav>
@@ -173,40 +176,66 @@ label.rate input:checked + span{background:var(--accent);border-color:var(--acce
     <div id="dash-body"></div>
   </section>
 
-  <!-- FORM -->
+  <!-- ORIENTATIONS WAITING FOR EVALUATION -->
+  <section class="panel" id="p-queue" hidden>
+    <div class="card">
+      <div class="card-head">
+        <div><h2 id="queue-title">Waiting for evaluation</h2><span class="scale-note" id="queue-sub"></span></div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap">
+          <button type="button" class="btn" id="btn-qrefresh">Refresh</button>
+          <button type="button" class="btn primary admin-only" id="btn-new">New orientation</button>
+        </div>
+      </div>
+      <div id="queue-body"></div>
+      <p class="scale-note admin-only" style="margin:14px 0 0">To add many at once, paste rows into the <strong>New orientations</strong> tab of the Google Sheet (Orientation date · Broker company · Salesperson · Project · Format · Broker contact · Contact phone). They move here on the next refresh.</p>
+    </div>
+  </section>
+
+  <!-- FORM: new orientation / evaluate / edit -->
   <section class="panel" id="p-form" hidden>
     <form class="card" id="fb-form" novalidate>
-      <div class="section-title"><h2 id="form-title">Orientation details</h2></div>
-      <div class="form-grid">
-        <div class="field"><label for="i-date">Orientation date</label><input id="i-date" type="date" required></div>
-        <div class="field"><label for="i-broker">Broker company</label><input id="i-broker" list="dl-broker" required placeholder="e.g. Nawy, Coldwell Banker"></div>
-        <div class="field"><label for="i-sales">Salesperson who delivered it</label><select id="i-sales" required><option value="">Choose a salesperson…</option></select><span class="scale-note" id="sales-meta"></span></div>
-        <div class="field"><label for="i-project">Project presented</label><select id="i-project" required></select></div>
-        <div class="field"><label for="i-format">Format</label>
-          <select id="i-format"><option>At our sales office</option><option>At broker's office</option><option>On-site visit</option><option>Online (Zoom/Teams)</option></select></div>
-        <div class="field"><label for="i-resp">Feedback given by</label><input id="i-resp" placeholder="Broker name"></div>
-        <div class="field"><label for="i-role">Their role</label>
-          <select id="i-role"><option>Broker / sales agent</option><option>Team leader</option><option>Sales manager</option><option>Owner / director</option><option>Admin</option></select></div>
-        <div class="field"><label for="i-channel">How we collected it</label>
-          <select id="i-channel"><option>Phone call</option><option>WhatsApp</option><option>In person</option><option>Email</option></select></div>
+      <div class="card-head" style="margin-bottom:0"><h2 id="form-title">New orientation</h2><button type="button" class="btn ghost" id="btn-back">← Back to list</button></div>
+
+      <div id="summary" class="summary" hidden></div>
+
+      <div id="details-block">
+        <div class="form-grid" style="margin-top:14px">
+          <div class="field"><label for="i-date">Orientation date</label><input id="i-date" type="date" required></div>
+          <div class="field"><label for="i-broker">Broker company</label><input id="i-broker" list="dl-broker" required placeholder="e.g. Nawy, Coldwell Banker"></div>
+          <div class="field"><label for="i-sales">Salesperson who delivered it</label><select id="i-sales" required><option value="">Choose a salesperson…</option></select></div>
+          <div class="field"><label for="i-project">Project presented</label><select id="i-project" required></select></div>
+          <div class="field"><label for="i-format">Format</label>
+            <select id="i-format"><option>At our sales office</option><option>At broker's office</option><option>On-site visit</option><option>Online (Zoom/Teams)</option></select></div>
+          <div class="field"><label for="i-contact">Broker contact to call</label><input id="i-contact" placeholder="Broker name"></div>
+          <div class="field"><label for="i-phone">Contact phone</label><input id="i-phone" type="tel" inputmode="tel" placeholder="01xxxxxxxxx"></div>
+        </div>
       </div>
 
-      <div class="section-title"><h2>Broker ratings</h2><span class="scale-note">1 Poor · 2 Weak · 3 Acceptable · 4 Good · 5 Excellent</span></div>
-      <div class="q">
-        <div><label class="qt" for="i-attend">Did the Sales attend?</label><div class="qd">If not, the ratings below are skipped and the orientation scores 0.</div></div>
-        <select id="i-attend" style="width:auto;min-width:150px"><option value="yes">Yes</option><option value="no">No (score = 0)</option></select>
+      <div id="eval-section">
+        <div class="section-title"><h2>Feedback</h2></div>
+        <div class="form-grid">
+          <div class="field"><label for="i-resp">Feedback given by</label><input id="i-resp" placeholder="Broker name"></div>
+          <div class="field"><label for="i-role">Their role</label>
+            <select id="i-role"><option>Broker / sales agent</option><option>Team leader</option><option>Sales manager</option><option>Owner / director</option><option>Admin</option></select></div>
+          <div class="field"><label for="i-channel">How we collected it</label>
+            <select id="i-channel"><option>Phone call</option><option>WhatsApp</option><option>In person</option><option>Email</option></select></div>
+        </div>
+
+        <div class="section-title"><h2>Broker ratings</h2><span class="scale-note">1 Poor · 2 Weak · 3 Acceptable · 4 Good · 5 Excellent</span></div>
+        <div class="q">
+          <div><label class="qt" for="i-attend">Did the Sales attend?</label><div class="qd">If not, the ratings below are skipped and the orientation scores 0.</div></div>
+          <select id="i-attend" style="width:auto;min-width:150px"><option value="yes">Yes</option><option value="no">No (score = 0)</option></select>
+        </div>
+        <div id="noshow-note" class="banner" style="margin-top:12px" hidden>The salesperson didn't attend, so the ratings are skipped and this orientation scores 0.</div>
+        <div id="eval-block"><div id="questions"></div></div>
+        <div class="section-title"><h2>Notes</h2></div>
+        <div class="field"><label for="i-note">Anything else worth recording (optional)</label><textarea id="i-note" placeholder="e.g. Broker asked for an updated price list; follow up next week."></textarea></div>
       </div>
-      <div id="noshow-note" class="banner" style="margin-top:12px" hidden>The salesperson didn't attend, so the ratings are skipped and this orientation scores 0.</div>
-      <div id="eval-block">
-      <div id="questions"></div>
-      </div>
-      <div class="section-title"><h2>Notes</h2></div>
-      <div class="field"><label for="i-note">Anything else worth recording (optional)</label><textarea id="i-note" placeholder="e.g. Broker asked for an updated price list; follow up next week."></textarea></div>
 
       <div class="actions">
-        <div class="live-score" style="margin-right:auto"><span class="lbl">Session score</span><span class="big" id="live">–</span><span id="live-band"></span></div>
-        <button type="button" class="btn" id="btn-cancel" hidden>Cancel edit</button>
-        <button type="submit" class="btn primary" id="btn-save">Save feedback</button>
+        <div class="live-score" id="live-wrap" style="margin-right:auto"><span class="lbl">Session score</span><span class="big" id="live">–</span><span id="live-band"></span></div>
+        <button type="button" class="btn" id="btn-cancel">Cancel</button>
+        <button type="submit" class="btn primary" id="btn-save">Save</button>
       </div>
       <p id="form-err" class="scale-note" style="color:var(--bad);text-align:right" hidden></p>
     </form>
@@ -215,7 +244,7 @@ label.rate input:checked + span{background:var(--accent);border-color:var(--acce
   <!-- RECORDS -->
   <section class="panel" id="p-log" hidden>
     <div class="card">
-      <div class="card-head"><h2>All feedback</h2>
+      <div class="card-head"><h2>Evaluated orientations</h2>
         <div style="display:flex;gap:8px;flex-wrap:wrap"><input id="search" placeholder="Search broker, salesperson, project…" style="width:260px;max-width:100%"><button class="btn" id="btn-refresh">Refresh</button><button class="btn" id="btn-export" hidden>Export CSV</button></div></div>
       <div id="log-body"></div>
     </div>
@@ -236,7 +265,7 @@ label.rate input:checked + span{background:var(--accent);border-color:var(--acce
   </section>
 </div>
 
-<datalist id="dl-broker"></datalist><datalist id="dl-sales"></datalist><datalist id="dl-project"></datalist>
+<datalist id="dl-broker"></datalist>
 <div class="toast" id="toast" hidden></div>
 
 <script>
@@ -245,11 +274,7 @@ function buildSalesSelect(extra){
   const el = $("i-sales"), cur = el.value;
   let h = `<option value="">Choose a salesperson…</option>` + TEAM.map(p => p.n).sort((a,b)=>a.localeCompare(b)).map(n => `<option value="${esc(n)}">${esc(n)}</option>`).join("");
   if (extra && !TEAM.some(p => p.n === extra)) h += `<option value="${esc(extra)}">${esc(extra)}</option>`;
-  el.innerHTML = h; el.value = extra || cur; showSalesMeta();
-}
-function showSalesMeta(){
-  const p = TEAM.find(x => x.n === $("i-sales").value);
-  $("sales-meta").textContent = "";
+  el.innerHTML = h; el.value = extra || cur;
 }
 const CRITERIA = [
   {k:"project",   t:"Product knowledge",         d:"Location, master plan, unit types, areas, prices, payment plans and delivery dates were explained clearly."},
@@ -265,40 +290,53 @@ const BANDS = [
   {min:55, l:"Needs improvement", c:"b-ni", d:"Review the session with the salesperson and set a coaching plan."},
   {min:0,  l:"Poor", c:"b-pr", d:"Re-run the orientation for this broker and retrain before the next one."}
 ];
+const OVERDUE_DAYS = 2;
 const band = s => BANDS.find(b => s >= b.min);
 const pill = s => { const b = band(s); return `<span class="pill ${b.c}">${b.l}</span>`; };
 const esc = v => String(v ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 const scoreOf = r => { const v = CRITERIA.map(c => Number(r.scores?.[c.k])).filter(n => n >= 1 && n <= 5); return v.length ? Math.round(v.reduce((a,b)=>a+b,0) / v.length * 20) : null; };
 const avg = a => a.length ? a.reduce((x,y)=>x+y,0)/a.length : null;
 const $ = id => document.getElementById(id);
+const isPending = r => r.status === "Pending";
+function today(){ const d = new Date(); return new Date(d - d.getTimezoneOffset()*6e4).toISOString().slice(0,10); }
+const daysSince = date => date ? Math.floor((new Date(today()) - new Date(date)) / 864e5) : 0;
 
 /* ===== SETTINGS: paste your Apps Script web app URL below (see README) ===== */
 const API_URL = "https://script.google.com/macros/s/AKfycbx1u_n1ruU5rDSWcQUcxCOCTyQhGzFK6I3Yc_3enx2xPoPrFPYRHP-2BlP1f0ezhktVaQ/exec";
 /* ========================================================================== */
 const configured = /^https:\/\/script\.google\.com\//.test(API_URL);
-let rows = [], loaded = false, readOnly = false, editingId = null, auth = null;
+let rows = [], pending = [], loaded = false, editingId = null, formMode = "create", auth = null;
 const isAdmin = () => auth?.role === "admin";
+const done = () => rows.filter(r => !isPending(r));
 async function apiPost(body){
   const r = await fetch(API_URL, {method:"POST", body:JSON.stringify({...body, u:auth?.u, p:auth?.p})});
   const j = await r.json();
   if (!j.ok){ if (j.error === "unauthorized" && body.action !== "login") logout("Your session ended. Please sign in again."); throw new Error(j.error || "request_failed"); }
   return j;
 }
-async function loadRows(quiet){
+async function refresh(quiet){
   if (!configured){ loaded = true; showBanner("Not connected yet: paste the Google Apps Script URL into API_URL in index.html (see README)."); render(); return; }
-  if (!isAdmin()) return;
+  if (!auth) return;
   try{
-    const list = (await apiPost({action:"list"})).rows;
-    rows = list.sort((a,b) => (b.date||"").localeCompare(a.date||"") || (b.createdAt||"").localeCompare(a.createdAt||""));
+    if (isAdmin()){
+      const list = (await apiPost({action:"list"})).rows;
+      rows = list.sort((a,b) => (b.date||"").localeCompare(a.date||"") || (b.createdAt||"").localeCompare(a.createdAt||""));
+      pending = rows.filter(isPending);
+    } else {
+      pending = (await apiPost({action:"queue"})).rows;
+    }
+    pending.sort((a,b) => (a.date||"").localeCompare(b.date||""));
     loaded = true; $("banner").hidden = true; render();
-  }catch(e){ loaded = true; if (!quiet) showBanner("Couldn't load data from the Google Sheet. Check the web app URL and that it's deployed with access \"Anyone\"."); render(); }
+  }catch(e){ loaded = true; if (!quiet && auth) showBanner("Couldn't load data from the Google Sheet. Check your connection and try again."); render(); }
 }
 function showBanner(t){ $("banner").textContent = t; $("banner").hidden = false; }
 
 /* ---------- tabs ---------- */
+let lastTab = "queue";
 function showTab(t){
+  if (t !== "form") lastTab = t;
   document.querySelectorAll(".tabs button").forEach(b => b.setAttribute("aria-selected", b.dataset.tab === t));
-  ["dash","form","log","guide"].forEach(p => $("p-"+p).hidden = p !== t);
+  ["dash","queue","form","log","guide"].forEach(p => $("p-"+p).hidden = p !== t);
 }
 document.querySelectorAll(".tabs button").forEach(b => b.addEventListener("click", () => showTab(b.dataset.tab)));
 
@@ -306,14 +344,17 @@ document.querySelectorAll(".tabs button").forEach(b => b.addEventListener("click
 function applyRole(){
   const signed = !!auth;
   $("p-login").hidden = signed; $("top-bar").hidden = !signed;
-  if (!signed){ ["dash","form","log","guide"].forEach(p => $("p-"+p).hidden = true); $("banner").hidden = true; return; }
-  document.querySelectorAll(".tabs button").forEach(b => b.hidden = !isAdmin() && b.dataset.tab !== "form");
-  $("who").textContent = `${auth.u} · ${isAdmin() ? "Full access" : "Log feedback only"}`;
-  showTab(isAdmin() ? "dash" : "form");
-  if (isAdmin()) loadRows();
+  if (!signed){ ["dash","queue","form","log","guide"].forEach(p => $("p-"+p).hidden = true); $("banner").hidden = true; return; }
+  document.querySelectorAll(".tabs button").forEach(b => b.hidden = !isAdmin() && b.dataset.tab !== "queue");
+  document.querySelectorAll(".admin-only").forEach(el => el.hidden = !isAdmin());
+  $("tab-queue").textContent = isAdmin() ? "Orientations" : "To evaluate";
+  $("who").textContent = `${auth.u} · ${isAdmin() ? "Full access" : "Evaluator"}`;
+  loaded = false; render();
+  showTab(isAdmin() ? "dash" : "queue");
+  refresh();
 }
 function logout(msg){
-  auth = null; rows = []; loaded = false;
+  auth = null; rows = []; pending = []; loaded = false;
   try{ sessionStorage.removeItem("arx-auth"); }catch(e){}
   $("l-pass").value = ""; $("l-err").textContent = msg || ""; $("l-err").hidden = !msg;
   applyRole();
@@ -347,9 +388,7 @@ $("questions").innerHTML = CRITERIA.map(c => `
 
 function readScores(){ const s = {}; CRITERIA.forEach(c => { const el = document.querySelector(`input[name="r-${c.k}"]:checked`); if (el) s[c.k] = Number(el.value); }); return s; }
 const attended = () => $("i-attend").value !== "no";
-function applyAttend(){
-  $("eval-block").hidden = !attended(); $("noshow-note").hidden = attended(); updateLive();
-}
+function applyAttend(){ $("eval-block").hidden = !attended(); $("noshow-note").hidden = attended(); updateLive(); }
 $("i-attend").addEventListener("change", applyAttend);
 function updateLive(){
   if (!attended()){ $("live").textContent = "0"; $("live-band").innerHTML = `<span class="pill b-pr">No-show</span>`; return; }
@@ -361,62 +400,114 @@ function updateLive(){
 }
 $("questions").addEventListener("change", updateLive);
 
-function today(){ const d = new Date(); return new Date(d - d.getTimezoneOffset()*6e4).toISOString().slice(0,10); }
 const PROJECTS = ["Assl New Cairo"];
 function buildProjectSelect(extra){
   const list = extra && !PROJECTS.includes(extra) ? [...PROJECTS, extra] : PROJECTS;
   $("i-project").innerHTML = list.map(p => `<option value="${esc(p)}">${esc(p)}</option>`).join("");
   $("i-project").value = extra || PROJECTS[0];
 }
-$("i-sales").addEventListener("change", showSalesMeta);
-function resetForm(){
-  $("fb-form").reset(); buildSalesSelect(); buildProjectSelect(); $("i-date").value = today(); editingId = null;
-  $("form-title").textContent = "Orientation details"; $("btn-save").textContent = "Save feedback"; $("btn-cancel").hidden = true;
-  $("form-err").hidden = true; applyAttend();
+function setSelect(id, v){ if (v && [...$(id).options].some(o => o.value === v)) $(id).value = v; }
+
+/* mode: "create" (new / edit pending orientation) · "evaluate" (fill feedback for a pending one) · "edit" (admin edits an evaluated record) */
+function openForm(mode, rec){
+  $("fb-form").reset(); buildSalesSelect(rec?.salesperson || ""); buildProjectSelect(rec?.project || "");
+  formMode = mode; editingId = rec?.id || null; $("form-err").hidden = true;
+  $("i-date").value = rec?.date || today(); $("i-broker").value = rec?.broker || "";
+  setSelect("i-format", rec?.format); $("i-contact").value = rec?.contact || ""; $("i-phone").value = rec?.phone || "";
+  $("i-resp").value = rec?.respondent || rec?.contact || ""; setSelect("i-role", rec?.role); setSelect("i-channel", rec?.channel);
+  CRITERIA.forEach(c => { const el = $(`r-${c.k}-${rec?.scores?.[c.k]}`); if (el) el.checked = true; });
+  $("i-attend").value = rec?.attended === false ? "no" : "yes"; $("i-note").value = rec?.note || "";
+  $("details-block").hidden = mode === "evaluate";
+  $("summary").hidden = mode !== "evaluate";
+  $("eval-section").hidden = mode === "create"; $("live-wrap").hidden = mode === "create";
+  if (mode === "evaluate") $("summary").innerHTML = summaryHtml(rec);
+  $("form-title").textContent = mode === "create" ? (editingId ? "Edit orientation" : "New orientation") : mode === "evaluate" ? "Evaluate orientation" : "Edit feedback";
+  $("btn-save").textContent = mode === "create" ? (editingId ? "Save changes" : "Add to evaluation list") : mode === "evaluate" ? "Save evaluation" : "Save changes";
+  applyAttend(); showTab("form"); window.scrollTo({top:0});
 }
-resetForm();
-$("btn-cancel").addEventListener("click", () => { resetForm(); showTab("log"); });
+function summaryHtml(r){
+  const late = daysSince(r.date) > OVERDUE_DAYS;
+  const item = (l, v) => `<div><span class="lbl">${l}</span><div>${v || "—"}</div></div>`;
+  return `<div class="summary-grid">
+    ${item("Orientation date", `${esc(r.date)} ${late ? `<span class="pill b-pr">Overdue</span>` : ""}`)}
+    ${item("Broker company", esc(r.broker))}
+    ${item("Salesperson", esc(r.salesperson))}
+    ${item("Project", esc(r.project))}
+    ${item("Format", esc(r.format))}
+    ${item("Call", `${esc(r.contact)}${r.phone ? ` · <span class="val" style="text-align:left;user-select:all">${esc(r.phone)}</span>` : ""}`)}
+  </div>`;
+}
+$("btn-new").addEventListener("click", () => openForm("create"));
+$("btn-back").addEventListener("click", () => showTab(lastTab));
+$("btn-cancel").addEventListener("click", () => showTab(lastTab));
 
 $("fb-form").addEventListener("submit", async e => {
   e.preventDefault();
-  const att = attended();
-  const scores = att ? readScores() : {};
-  const req = {date:$("i-date").value, broker:$("i-broker").value.trim(), salesperson:$("i-sales").value.trim(), project:$("i-project").value.trim()};
-  const missing = Object.entries({"date":req.date,"broker company":req.broker,"salesperson":req.salesperson,"project":req.project}).filter(([,v])=>!v).map(([k])=>k);
-  if (att && Object.keys(scores).length < CRITERIA.length) missing.push(`${CRITERIA.length - Object.keys(scores).length} rating(s)`);
+  const missing = [];
+  let body;
+  if (formMode !== "evaluate"){
+    const det = {date:$("i-date").value, broker:$("i-broker").value.trim(), salesperson:$("i-sales").value.trim(), project:$("i-project").value.trim()};
+    Object.entries({"date":det.date,"broker company":det.broker,"salesperson":det.salesperson,"project":det.project}).forEach(([k,v]) => { if (!v) missing.push(k); });
+    const tm = TEAM.find(p => p.n === det.salesperson) || {};
+    var details = {...det, manager:tm.m||null, director:tm.d||null, format:$("i-format").value, contact:$("i-contact").value.trim(), phone:$("i-phone").value.trim()};
+  }
+  if (formMode !== "create"){
+    const att = attended(), scores = att ? readScores() : {};
+    if (att && Object.keys(scores).length < CRITERIA.length) missing.push(`${CRITERIA.length - Object.keys(scores).length} rating(s)`);
+    var evaluation = {respondent:$("i-resp").value.trim(), role:$("i-role").value, channel:$("i-channel").value, attended:att, scores, note:$("i-note").value.trim(), score:att ? scoreOf({scores}) : 0};
+  }
   if (missing.length){ $("form-err").textContent = "Please fill in: " + missing.join(", ") + "."; $("form-err").hidden = false; return; }
   $("form-err").hidden = true;
-  if (!configured){ toast("Connect the Google Sheet first (see README)."); return; }
-  const tm = TEAM.find(p => p.n === req.salesperson) || {};
-  const doc = {...req, manager:tm.m||null, director:tm.d||null, format:$("i-format").value, respondent:$("i-resp").value.trim(),
-    role:$("i-role").value, channel:$("i-channel").value, attended:att, scores, note:$("i-note").value.trim(), score:att?scoreOf({scores}):0, updatedAt:new Date().toISOString()};
+  const now = new Date().toISOString();
+  if (formMode === "create") body = editingId ? {action:"update", id:editingId, record:{...details, status:"Pending", updatedAt:now}} : {action:"create", record:{...details, createdAt:now, updatedAt:now}};
+  else if (formMode === "evaluate") body = {action:"evaluate", id:editingId, record:{...evaluation, updatedAt:now}};
+  else body = {action:"update", id:editingId, record:{...details, ...evaluation, status:"Evaluated", updatedAt:now}};
   $("btn-save").disabled = true;
   try{
-    if (editingId){ await apiPost({action:"update", id:editingId, record:{...doc, createdAt:(rows.find(r=>r.id===editingId)||{}).createdAt || doc.updatedAt}}); toast("Feedback updated"); }
-    else { await apiPost({action:"add", record:{...doc, createdAt:doc.updatedAt}}); toast(`Saved to Google Sheet · score ${doc.score}`); }
-    resetForm();
-    if (isAdmin()){ await loadRows(); showTab("dash"); } else window.scrollTo({top:0});
+    await apiPost(body);
+    toast(formMode === "create" ? (editingId ? "Orientation updated" : "Added to the evaluation list") : formMode === "evaluate" ? `Evaluation saved · score ${evaluation.score}` : "Feedback updated");
+    const back = formMode === "edit" ? "log" : "queue";
+    await refresh(); showTab(back);
   }catch(err){ handleWriteErr(err); }
-  finally{ $("btn-save").disabled = readOnly; }
+  finally{ $("btn-save").disabled = false; }
 });
-
 function handleWriteErr(err){
-  if (String(err?.message) === "unauthorized") toast("You don't have permission to do that.");
+  const m = String(err?.message);
+  if (m === "unauthorized") toast("You don't have permission to do that.");
+  else if (m === "already_evaluated"){ toast("Someone already evaluated this orientation."); refresh(); showTab("queue"); }
+  else if (m === "not_found"){ toast("This orientation no longer exists."); refresh(); showTab("queue"); }
   else toast("Couldn't save to the Google Sheet. Check your connection and try again.");
 }
 
-function editRow(id){
-  const r = rows.find(x => x.id === id); if (!r) return;
-  resetForm(); editingId = id;
-  $("i-date").value = r.date||""; $("i-broker").value = r.broker||""; buildSalesSelect(r.salesperson||""); buildProjectSelect(r.project||"");
-  $("i-format").value = r.format||$("i-format").value; $("i-resp").value = r.respondent||"";
-  $("i-role").value = r.role||$("i-role").value; $("i-channel").value = r.channel||$("i-channel").value;
-  CRITERIA.forEach(c => { const el = $(`r-${c.k}-${r.scores?.[c.k]}`); if (el) el.checked = true; });
-  $("i-attend").value = r.attended === false ? "no" : "yes"; applyAttend();
-  $("i-note").value = r.note || "";
-  $("form-title").textContent = "Edit feedback"; $("btn-save").textContent = "Save changes"; $("btn-cancel").hidden = false;
-  updateLive(); showTab("form"); window.scrollTo({top:0});
+/* ---------- queue ---------- */
+let qConfirm = null;
+function renderQueue(){
+  const el = $("queue-body");
+  const late = pending.filter(r => daysSince(r.date) > OVERDUE_DAYS).length;
+  $("queue-sub").textContent = loaded ? `${pending.length} waiting${late ? ` · ${late} overdue (more than ${OVERDUE_DAYS} days)` : ""}` : "";
+  if (!loaded){ el.innerHTML = `<div class="empty">Loading…</div>`; return; }
+  if (!pending.length){ el.innerHTML = `<div class="empty"><strong>Nothing waiting</strong>${isAdmin() ? "Add an orientation with “New orientation”, or paste rows into the New orientations tab in the Google Sheet." : "New orientations will show up here as soon as they're added."}</div>`; return; }
+  el.innerHTML = `<div class="tbl-wrap"><table><thead><tr><th>Date</th><th>Broker company</th><th>Call</th><th>Salesperson</th><th>Project</th><th></th></tr></thead><tbody>
+  ${pending.map(r => { const d = daysSince(r.date); return `<tr>
+    <td class="n">${esc(r.date)}<div>${d > OVERDUE_DAYS ? `<span class="pill b-pr">Overdue · ${d}d</span>` : d >= 0 ? `<span class="scale-note">${d === 0 ? "today" : d + "d ago"}</span>` : `<span class="scale-note">upcoming</span>`}</div></td>
+    <td>${esc(r.broker)}<div class="scale-note">${esc(r.format||"")}</div></td>
+    <td>${esc(r.contact)||"—"}${r.phone ? `<div class="val" style="text-align:left;user-select:all">${esc(r.phone)}</div>` : ""}</td>
+    <td>${esc(r.salesperson)}</td><td>${esc(r.project)}</td>
+    <td style="white-space:nowrap"><button class="btn primary" data-eval="${esc(r.id)}">Evaluate</button>${isAdmin() ? (qConfirm === r.id
+      ? `<span class="confirm">Delete?<button class="btn ghost danger" data-qdel="${esc(r.id)}">Delete</button><button class="btn ghost" data-qkeep>Keep</button></span>`
+      : `<button class="btn ghost" data-qedit="${esc(r.id)}">Edit</button><button class="btn ghost danger" data-qask="${esc(r.id)}">Delete</button>`) : ""}</td></tr>`; }).join("")}
+  </tbody></table></div>`;
 }
+$("queue-body").addEventListener("click", async e => {
+  const t = e.target.closest("button"); if (!t) return;
+  const find = id => pending.find(r => r.id === id);
+  if (t.dataset.eval) openForm("evaluate", find(t.dataset.eval));
+  if (t.dataset.qedit) openForm("create", find(t.dataset.qedit));
+  if (t.dataset.qask){ qConfirm = t.dataset.qask; renderQueue(); }
+  if (t.hasAttribute("data-qkeep")){ qConfirm = null; renderQueue(); }
+  if (t.dataset.qdel){ try{ await apiPost({action:"delete", id:t.dataset.qdel}); toast("Orientation deleted"); qConfirm = null; await refresh(); }catch(err){ handleWriteErr(err); } }
+});
+$("btn-qrefresh").addEventListener("click", async () => { $("btn-qrefresh").disabled = true; await refresh(); $("btn-qrefresh").disabled = false; toast("List refreshed"); });
 
 /* ---------- filters ---------- */
 ["f-period","f-sales","f-project","f-broker"].forEach(id => $(id).addEventListener("change", render));
@@ -428,14 +519,14 @@ function filtered(){
   if (p === "30" || p === "90"){ const d = new Date(now - Number(p)*864e5); from = d.toISOString().slice(0,10); }
   if (p === "month") from = t.slice(0,8) + "01";
   if (p === "year") from = t.slice(0,5) + "01-01";
-  return rows.filter(r => (!from || (r.date||"") >= from) && (!s || r.salesperson === s) && (!pr || r.project === pr) && (!b || r.broker === b));
+  return done().filter(r => (!from || (r.date||"") >= from) && (!s || r.salesperson === s) && (!pr || r.project === pr) && (!b || r.broker === b));
 }
 function fillSelect(id, values, allLabel){
   const el = $(id), cur = el.value;
   el.innerHTML = `<option value="">${allLabel}</option>` + values.map(v => `<option>${esc(v)}</option>`).join("");
   el.value = values.includes(cur) ? cur : "";
 }
-const uniq = k => [...new Set(rows.map(r => r[k]).filter(Boolean))].sort((a,b)=>a.localeCompare(b));
+const uniq = k => [...new Set(done().map(r => r[k]).filter(Boolean))].sort((a,b)=>a.localeCompare(b));
 
 /* ---------- dashboard ---------- */
 function groupBy(list, key){
@@ -446,38 +537,45 @@ function groupBy(list, key){
   }).sort((a,b)=>b.score-a.score);
 }
 function render(){
-  fillSelect("f-sales", uniq("salesperson"), "All salespeople");
-  fillSelect("f-project", uniq("project"), "All projects");
-  fillSelect("f-broker", uniq("broker"), "All broker companies");
-  ["broker"].forEach(k => $("dl-"+k).innerHTML = uniq(k).map(v=>`<option value="${esc(v)}">`).join(""));
-  renderDash(); renderLog();
+  if (isAdmin()){
+    fillSelect("f-sales", uniq("salesperson"), "All salespeople");
+    fillSelect("f-project", uniq("project"), "All projects");
+    fillSelect("f-broker", uniq("broker"), "All broker companies");
+    $("dl-broker").innerHTML = [...new Set(rows.map(r => r.broker).filter(Boolean))].sort().map(v=>`<option value="${esc(v)}">`).join("");
+    renderDash(); renderLog();
+  }
+  renderQueue();
+}
+function pendingCard(){
+  const late = pending.filter(r => daysSince(r.date) > OVERDUE_DAYS).length;
+  const lags = done().filter(r => r.evaluatedAt && r.date).map(r => Math.max(0, (new Date(r.evaluatedAt) - new Date(r.date)) / 864e5));
+  const lag = lags.length ? avg(lags).toFixed(1) : null;
+  return `<div class="card kpi"><h3>Waiting for evaluation</h3><div class="num">${pending.length}</div><div class="note">${late ? `<span class="pill b-pr">${late} overdue</span> ` : ""}${lag != null ? `avg ${lag} days to evaluate` : `<a href="#" id="go-queue">Open the list</a>`}</div></div>`;
 }
 function renderDash(){
   const el = $("dash-body");
   if (!loaded){ el.innerHTML = `<div class="card empty"><strong>Loading feedback…</strong>Connecting to the team's records.</div>`; return; }
-  if (!rows.length){
-    el.innerHTML = `<div class="card empty"><strong>No feedback logged yet</strong>After an orientation, call one of the attending brokers and log their ratings here. Scores by salesperson, broker company and criterion will appear on this page.<div style="margin-top:16px"><button class="btn primary" id="go-form" ${readOnly?"disabled":""}>Log the first feedback</button></div></div>`;
-    $("go-form").addEventListener("click", () => showTab("form")); return;
+  if (!done().length){
+    el.innerHTML = `<div class="kpis">${pendingCard()}</div><div class="card empty" style="margin-top:16px"><strong>No evaluations yet</strong>Add orientations to the evaluation list. Once the evaluator rates them, scores by salesperson, broker company and criterion will appear here.<div style="margin-top:16px"><button class="btn primary" id="go-new">New orientation</button></div></div>`;
+    $("go-new").addEventListener("click", () => openForm("create")); bindGoQueue(); return;
   }
   const list = filtered();
-  if (!list.length){ el.innerHTML = `<div class="card empty"><strong>No feedback matches these filters</strong>Try a longer period or clear a filter.</div>`; return; }
+  if (!list.length){ el.innerHTML = `<div class="kpis">${pendingCard()}</div><div class="card empty" style="margin-top:16px"><strong>No feedback matches these filters</strong>Try a longer period or clear a filter.</div>`; bindGoQueue(); return; }
   const scores = list.map(r => r.score ?? scoreOf(r)).filter(v=>v!=null);
   const overall = Math.round(avg(scores));
   const goodPct = Math.round(scores.filter(s => s >= 70).length / scores.length * 100);
   const att = list.filter(r => r.attended !== false), noShows = list.length - att.length;
   const attendPct = Math.round(att.length / list.length * 100);
-  const sessions = new Set(list.map(r => `${r.date}|${r.broker}|${r.salesperson}|${r.project}`)).size;
-
   const crit = CRITERIA.map(c => ({c, v:avg(list.map(r => Number(r.scores?.[c.k])).filter(Boolean))})).filter(x => x.v != null).sort((a,b)=>a.v-b.v);
   const weakest = crit[0] || {v:5};
 
   el.innerHTML = `
   <div class="panel">
     <div class="kpis">
-      <div class="card kpi"><h3>Average quality score</h3><div class="num">${overall}<small> / 100</small></div><div class="note">${pill(overall)}</div></div>
-      <div class="card kpi"><h3>Feedback collected</h3><div class="num">${list.length}</div><div class="note">from ${sessions} orientation session${sessions===1?"":"s"}${noShows?` · ${noShows} no-show${noShows===1?"":"s"} scored 0`:""}</div></div>
+      <div class="card kpi"><h3>Average quality score</h3><div class="num">${overall}<small> / 100</small></div><div class="note">${pill(overall)} · ${list.length} evaluated${noShows?` · ${noShows} no-show${noShows===1?"":"s"}`:""}</div></div>
       <div class="card kpi"><h3>Rated good or better</h3><div class="num">${goodPct}<small>%</small></div><div class="note">score 70 and above</div></div>
       <div class="card kpi"><h3>Sales attendance</h3><div class="num">${attendPct}<small>%</small></div><div class="note">${att.length} of ${list.length} orientations attended</div></div>
+      ${pendingCard()}
     </div>
     <div class="grid2">
       <div class="card">
@@ -492,22 +590,24 @@ function renderDash(){
     </div>
     <div class="card">
       <div class="card-head"><h2>By salesperson</h2><span class="scale-note">sorted by average score</span></div>
-      <div class="tbl-wrap"><table><thead><tr><th>Salesperson</th><th>Feedback</th><th>Score</th><th>Rating</th><th>Weakest criterion</th><th>Last orientation</th></tr></thead><tbody>
+      <div class="tbl-wrap"><table><thead><tr><th>Salesperson</th><th>Evaluated</th><th>Score</th><th>Rating</th><th>Weakest criterion</th><th>Last orientation</th></tr></thead><tbody>
       ${groupBy(list,"salesperson").map(g => `<tr><td>${esc(g.name)}</td><td class="n">${g.n}</td><td class="n">${g.score}</td><td>${pill(g.score)}</td><td>${g.weakest?`${g.weakest.c.t} <span class="val">${g.weakest.v.toFixed(1)}</span>`:"—"}</td><td class="n">${esc(g.last||"")}</td></tr>`).join("")}
       </tbody></table></div>
     </div>
     <div class="grid2">
       <div class="card"><div class="card-head"><h2>By broker company</h2></div>
-        <div class="tbl-wrap"><table><thead><tr><th>Broker company</th><th>Feedback</th><th>Score</th><th>Rating</th></tr></thead><tbody>
+        <div class="tbl-wrap"><table><thead><tr><th>Broker company</th><th>Evaluated</th><th>Score</th><th>Rating</th></tr></thead><tbody>
         ${groupBy(list,"broker").map(g => `<tr><td>${esc(g.name)}</td><td class="n">${g.n}</td><td class="n">${g.score}</td><td>${pill(g.score)}</td></tr>`).join("")}
         </tbody></table></div></div>
       <div class="card"><div class="card-head"><h2>By project</h2></div>
-        <div class="tbl-wrap"><table><thead><tr><th>Project</th><th>Feedback</th><th>Score</th><th>Weakest criterion</th></tr></thead><tbody>
+        <div class="tbl-wrap"><table><thead><tr><th>Project</th><th>Evaluated</th><th>Score</th><th>Weakest criterion</th></tr></thead><tbody>
         ${groupBy(list,"project").map(g => `<tr><td>${esc(g.name)}</td><td class="n">${g.n}</td><td class="n">${g.score}</td><td>${g.weakest?g.weakest.c.t:"—"}</td></tr>`).join("")}
         </tbody></table></div></div>
     </div>
   </div>`;
+  bindGoQueue();
 }
+function bindGoQueue(){ const a = $("go-queue"); if (a) a.addEventListener("click", e => { e.preventDefault(); showTab("queue"); }); }
 function trendSvg(list){
   const months = []; const d = new Date(); d.setDate(1);
   for (let i = 5; i >= 0; i--){ const m = new Date(d.getFullYear(), d.getMonth()-i, 1); months.push({key:`${m.getFullYear()}-${String(m.getMonth()+1).padStart(2,"0")}`, label:m.toLocaleString("en",{month:"short"})}); }
@@ -518,47 +618,48 @@ function trendSvg(list){
   months.forEach((m,i) => {
     const x = L + i*cw + cw*0.2, w = cw*0.6;
     if (m.v != null){ const b = band(m.v); const col = {"b-ex":"var(--good)","b-gd":"var(--accent)","b-ni":"var(--warn)","b-pr":"var(--bad)"}[b.c];
-      s += `<rect x="${x}" y="${y(m.v)}" width="${w}" height="${y(0)-y(m.v)}" rx="3" fill="${col}"><title>${m.label}: ${m.v} (${m.n} feedback)</title></rect><text x="${x+w/2}" y="${y(m.v)-5}" text-anchor="middle" style="fill:var(--fg)">${m.v}</text>`; }
+      s += `<rect x="${x}" y="${y(m.v)}" width="${w}" height="${y(0)-y(m.v)}" rx="3" fill="${col}"><title>${m.label}: ${m.v} (${m.n} evaluated)</title></rect><text x="${x+w/2}" y="${y(m.v)-5}" text-anchor="middle" style="fill:var(--fg)">${m.v}</text>`; }
     s += `<text x="${x+w/2}" y="${H-8}" text-anchor="middle">${m.label}</text>`;
   });
   return s + `</svg>`;
 }
 
-/* ---------- records ---------- */
+/* ---------- records (evaluated) ---------- */
 let confirmId = null;
 function renderLog(){
-  const el = $("log-body");
-  $("btn-export").hidden = !rows.length;
+  const el = $("log-body"), all = done();
+  $("btn-export").hidden = !all.length;
   if (!loaded){ el.innerHTML = `<div class="empty">Loading…</div>`; return; }
   const q = $("search").value.trim().toLowerCase();
-  const list = rows.filter(r => !q || [r.broker,r.salesperson,r.project,r.respondent,r.note].join(" ").toLowerCase().includes(q));
-  if (!list.length){ el.innerHTML = `<div class="empty"><strong>${rows.length?"No matching records":"No records yet"}</strong>${rows.length?"Try a different search.":"Logged feedback will be listed here, newest first."}</div>`; return; }
+  const list = all.filter(r => !q || [r.broker,r.salesperson,r.project,r.respondent,r.note,r.loggedBy].join(" ").toLowerCase().includes(q));
+  if (!list.length){ el.innerHTML = `<div class="empty"><strong>${all.length?"No matching records":"No evaluations yet"}</strong>${all.length?"Try a different search.":"Evaluated orientations will be listed here, newest first."}</div>`; return; }
   el.innerHTML = `<div class="tbl-wrap"><table><thead><tr><th>Date</th><th>Broker company</th><th>Salesperson</th><th>Project</th><th>Score</th><th>Notes</th><th></th></tr></thead><tbody>
-  ${list.map(r => { const sc = r.score ?? scoreOf(r); return `<tr>
+  ${list.map(r => { const sc = r.score ?? scoreOf(r) ?? 0; return `<tr>
     <td class="n">${esc(r.date)}</td>
     <td>${esc(r.broker)}${r.respondent?`<div class="scale-note">${esc(r.respondent)} · ${esc(r.role||"")}</div>`:""}</td>
     <td>${esc(r.salesperson)}</td><td>${esc(r.project)}<div class="scale-note">${esc(r.format||"")}</div></td>
-    <td class="n">${sc} ${r.attended===false?`<span class="pill b-pr">No-show</span>`:pill(sc)}</td><td><div class="comment">${esc(r.note)||"—"}</div></td>
-    <td style="white-space:nowrap">${readOnly?"":(confirmId===r.id
+    <td class="n">${sc} ${r.attended===false?`<span class="pill b-pr">No-show</span>`:pill(sc)}${r.loggedBy?`<div class="scale-note">by ${esc(r.loggedBy)}</div>`:""}</td><td><div class="comment">${esc(r.note)||"—"}</div></td>
+    <td style="white-space:nowrap">${confirmId===r.id
       ? `<span class="confirm">Delete?<button class="btn ghost danger" data-del="${esc(r.id)}">Delete</button><button class="btn ghost" data-nodel>Keep</button></span>`
-      : `<button class="btn ghost" data-edit="${esc(r.id)}">Edit</button><button class="btn ghost danger" data-ask="${esc(r.id)}">Delete</button>`)}</td></tr>`; }).join("")}
+      : `<button class="btn ghost" data-edit="${esc(r.id)}">Edit</button><button class="btn ghost danger" data-ask="${esc(r.id)}">Delete</button>`}</td></tr>`; }).join("")}
   </tbody></table></div>`;
 }
 $("log-body").addEventListener("click", async e => {
   const t = e.target.closest("button"); if (!t) return;
-  if (t.dataset.edit) editRow(t.dataset.edit);
+  if (t.dataset.edit) openForm("edit", rows.find(r => r.id === t.dataset.edit));
   if (t.dataset.ask){ confirmId = t.dataset.ask; renderLog(); }
   if (t.hasAttribute("data-nodel")){ confirmId = null; renderLog(); }
-  if (t.dataset.del){ try{ await apiPost({action:"delete", id:t.dataset.del}); toast("Record deleted"); await loadRows(); }catch(err){ handleWriteErr(err); } confirmId = null; renderLog(); }
+  if (t.dataset.del){ try{ await apiPost({action:"delete", id:t.dataset.del}); toast("Record deleted"); confirmId = null; await refresh(); }catch(err){ handleWriteErr(err); } }
 });
-$("btn-export").addEventListener("click", async () => {
-  const head = ["Date","Broker company","Salesperson","Project","Format","Respondent","Role","Collected via","Attended",...CRITERIA.map(c=>c.t),"Score","Rating","Notes"];
+$("btn-export").addEventListener("click", () => {
+  const head = ["Date","Broker company","Salesperson","Project","Format","Broker contact","Contact phone","Feedback given by","Role","Collected via","Attended",...CRITERIA.map(c=>c.t),"Score","Rating","Notes","Evaluated by","Evaluated at"];
   const q = v => `"${String(v ?? "").replace(/"/g,'""')}"`;
-  const lines = [head.map(q).join(",")].concat(rows.map(r => { const sc = r.score ?? scoreOf(r); return [r.date,r.broker,r.salesperson,r.project,r.format,r.respondent,r.role,r.channel,r.attended===false?"No":"Yes",...CRITERIA.map(c=>r.scores?.[c.k]),sc,band(sc).l,r.note].map(q).join(","); }));
-  const url = URL.createObjectURL(new Blob(["\ufeff"+lines.join("\n")], {type:"text/csv;charset=utf-8"}));
+  const lines = [head.map(q).join(",")].concat(done().map(r => { const sc = r.score ?? scoreOf(r) ?? 0; return [r.date,r.broker,r.salesperson,r.project,r.format,r.contact,r.phone,r.respondent,r.role,r.channel,r.attended===false?"No":"Yes",...CRITERIA.map(c=>r.scores?.[c.k]),sc,r.attended===false?"No-show":band(sc).l,r.note,r.loggedBy,r.evaluatedAt].map(q).join(","); }));
+  const url = URL.createObjectURL(new Blob(["﻿"+lines.join("\n")], {type:"text/csv;charset=utf-8"}));
   const a = document.createElement("a"); a.href = url; a.download = `orientation-feedback-${today()}.csv`; document.body.appendChild(a); a.click(); a.remove();
   setTimeout(() => URL.revokeObjectURL(url), 1000);
 });
+$("btn-refresh").addEventListener("click", async () => { $("btn-refresh").disabled = true; await refresh(); $("btn-refresh").disabled = false; toast("Refreshed from Google Sheet"); });
 
 /* ---------- guide ---------- */
 $("guide-bands").innerHTML = BANDS.map((b,i) => `<li><span><span class="pill ${b.c}">${b.l}</span><div class="val" style="text-align:left;margin-top:4px">${i===0?"85–100":`${b.min}–${BANDS[i-1].min-1}`}</div></span><span>${b.d}</span></li>`).join("");
@@ -567,13 +668,11 @@ $("guide-crit").innerHTML = CRITERIA.map(c => `<li><strong>${c.t}</strong><span>
 /* ---------- toast ---------- */
 let tt; function toast(m){ const t = $("toast"); t.textContent = m; t.hidden = false; clearTimeout(tt); tt = setTimeout(()=> t.hidden = true, 3200); }
 
-/* ---------- data ---------- */
-$("btn-refresh").addEventListener("click", async () => { $("btn-refresh").disabled = true; await loadRows(); $("btn-refresh").disabled = false; toast("Refreshed from Google Sheet"); });
-render();
+/* ---------- start ---------- */
 try{ const saved = JSON.parse(sessionStorage.getItem("arx-auth") || "null"); if (saved && saved.u && saved.p && saved.role) auth = saved; }catch(e){}
 applyRole();
-setInterval(() => { if (document.visibilityState === "visible" && isAdmin()) loadRows(true); }, 120000);
-document.addEventListener("visibilitychange", () => { if (document.visibilityState === "visible" && isAdmin()) loadRows(true); });
+setInterval(() => { if (document.visibilityState === "visible" && auth && $("p-form").hidden) refresh(true); }, 120000);
+document.addEventListener("visibilitychange", () => { if (document.visibilityState === "visible" && auth && $("p-form").hidden) refresh(true); });
 </script>
 
 </body>
