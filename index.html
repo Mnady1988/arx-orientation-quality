@@ -302,7 +302,7 @@ function today(){ const d = new Date(); return new Date(d - d.getTimezoneOffset(
 const daysSince = date => date ? Math.floor((new Date(today()) - new Date(date)) / 864e5) : 0;
 
 /* ===== SETTINGS: paste your Apps Script web app URL below (see README) ===== */
-const API_URL = "https://script.google.com/macros/s/AKfycbx1u_n1ruU5rDSWcQUcxCOCTyQhGzFK6I3Yc_3enx2xPoPrFPYRHP-2BlP1f0ezhktVaQ/exec";
+const API_URL = "https://script.google.com/macros/s/AKfycbwEHQg5iuVpWHfATtixPvqKHGX6XXIYyE1-IGisrDS0ES4FkMhgmJUFVKwGr1Cqyp6Ocw/exec";
 /* ========================================================================== */
 const configured = /^https:\/\/script\.google\.com\//.test(API_URL);
 let rows = [], pending = [], loaded = false, editingId = null, formMode = "create", auth = null;
