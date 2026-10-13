@@ -56,6 +56,19 @@ h3{font-size:.78rem;text-transform:uppercase;letter-spacing:.08em;color:var(--mu
 .focus{background:var(--gold-soft)!important}
 button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible,label.rate:focus-within{outline:2px solid var(--accent);outline-offset:2px}
 .panel{display:grid;gap:16px}
+.result-opts{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,200px),1fr));gap:10px}
+.ropt{position:relative;cursor:pointer}
+.ropt input{position:absolute;opacity:0;pointer-events:none}
+.ropt span{display:grid;gap:2px;padding:12px 14px;border:1px solid var(--line);border-radius:var(--r);background:var(--surface)}
+.ropt small{color:var(--muted);font-size:.8rem}
+.ropt input:checked + span{border-color:var(--accent);box-shadow:inset 0 0 0 1px var(--accent);background:var(--accent-soft)}
+.ropt:focus-within span{outline:2px solid var(--accent);outline-offset:2px}
+.b-new{background:var(--accent-soft);color:var(--accent)}
+#result-block{margin-top:18px}
+#feedback-block > .section-title:first-child{margin-top:22px;padding-top:16px;border-top:1px solid var(--line)}
+.chips{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px}
+.chip{border:1px solid var(--line);background:var(--surface);color:var(--muted);border-radius:99px;padding:5px 12px;font:500 .85rem var(--body);cursor:pointer}
+.chip[aria-pressed="true"]{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
 .summary{margin-top:14px;padding:14px 16px;border-radius:var(--r);background:var(--accent-soft)}
 .summary-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,180px),1fr));gap:12px 18px}
 .summary-grid .lbl{display:block;margin-bottom:2px}
@@ -169,6 +182,8 @@ label.rate input:checked + span{background:var(--accent);border-color:var(--acce
     <div class="card filters">
       <div class="field"><label for="f-period">Period</label>
         <select id="f-period"><option value="all">All time</option><option value="30">Last 30 days</option><option value="90">Last 90 days</option><option value="month">This month</option><option value="year">This year</option></select></div>
+      <div class="field"><label for="f-director">Director</label><select id="f-director"><option value="">All directors</option></select></div>
+      <div class="field"><label for="f-manager">Manager</label><select id="f-manager"><option value="">All managers</option></select></div>
       <div class="field"><label for="f-sales">Salesperson</label><select id="f-sales"><option value="">All salespeople</option></select></div>
       <div class="field"><label for="f-project">Project</label><select id="f-project"><option value="">All projects</option></select></div>
       <div class="field"><label for="f-broker">Broker company</label><select id="f-broker"><option value="">All broker companies</option></select></div>
@@ -212,6 +227,15 @@ label.rate input:checked + span{background:var(--accent);border-color:var(--acce
       </div>
 
       <div id="eval-section">
+        <div id="result-block">
+          <div class="section-title"><h2>Call result</h2></div>
+          <div class="result-opts" role="radiogroup" aria-label="Call result">
+            <label class="ropt"><input type="radio" name="result" id="res-done" value="done" checked><span><strong>Reached the broker</strong><small>Fill in the evaluation · Completed</small></span></label>
+            <label class="ropt"><input type="radio" name="result" id="res-noanswer" value="noanswer"><span><strong>No answer</strong><small>Keep it open to call again · Pending</small></span></label>
+            <label class="ropt"><input type="radio" name="result" id="res-wrong" value="wrong"><span><strong>Wrong number</strong><small>Keep it open for the number to be fixed · Pending</small></span></label>
+          </div>
+        </div>
+        <div id="feedback-block">
         <div class="section-title"><h2>Feedback</h2></div>
         <div class="form-grid">
           <div class="field"><label for="i-resp">Feedback given by</label><input id="i-resp" placeholder="Broker name"></div>
@@ -228,6 +252,7 @@ label.rate input:checked + span{background:var(--accent);border-color:var(--acce
         </div>
         <div id="noshow-note" class="banner" style="margin-top:12px" hidden>The salesperson didn't attend, so the ratings are skipped and this orientation scores 0.</div>
         <div id="eval-block"><div id="questions"></div></div>
+        </div>
         <div class="section-title"><h2>Notes</h2></div>
         <div class="field"><label for="i-note">Anything else worth recording (optional)</label><textarea id="i-note" placeholder="e.g. Broker asked for an updated price list; follow up next week."></textarea></div>
       </div>
@@ -297,7 +322,14 @@ const esc = v => String(v ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt
 const scoreOf = r => { const v = CRITERIA.map(c => Number(r.scores?.[c.k])).filter(n => n >= 1 && n <= 5); return v.length ? Math.round(v.reduce((a,b)=>a+b,0) / v.length * 20) : null; };
 const avg = a => a.length ? a.reduce((x,y)=>x+y,0)/a.length : null;
 const $ = id => document.getElementById(id);
-const isPending = r => r.status === "Pending";
+const isOpen = r => r.status === "New" || r.status === "Pending";
+const REASONS = {noanswer:"No answer", wrong:"Wrong number"};
+const fmtDT = iso => { try{ return new Date(iso).toLocaleString("en-GB",{day:"2-digit",month:"short",hour:"2-digit",minute:"2-digit"}); }catch(e){ return iso || ""; } };
+function statusPill(r){
+  if (r.status === "New") return `<span class="pill b-new">New</span>`;
+  if (r.status === "Pending") return `<span class="pill b-ni">Pending${r.lastReason ? " · " + esc(r.lastReason) : ""}</span>`;
+  return `<span class="pill b-ex">Completed</span>`;
+}
 function today(){ const d = new Date(); return new Date(d - d.getTimezoneOffset()*6e4).toISOString().slice(0,10); }
 const daysSince = date => date ? Math.floor((new Date(today()) - new Date(date)) / 864e5) : 0;
 
@@ -307,7 +339,7 @@ const API_URL = "https://script.google.com/macros/s/AKfycbwEHQg5iuVpWHfATtixPvqK
 const configured = /^https:\/\/script\.google\.com\//.test(API_URL);
 let rows = [], pending = [], loaded = false, editingId = null, formMode = "create", auth = null;
 const isAdmin = () => auth?.role === "admin";
-const done = () => rows.filter(r => !isPending(r));
+const done = () => rows.filter(r => r.status === "Completed");
 async function apiPost(body){
   const r = await fetch(API_URL, {method:"POST", body:JSON.stringify({...body, u:auth?.u, p:auth?.p})});
   const j = await r.json();
@@ -321,7 +353,8 @@ async function refresh(quiet){
     if (isAdmin()){
       const list = (await apiPost({action:"list"})).rows;
       rows = list.sort((a,b) => (b.date||"").localeCompare(a.date||"") || (b.createdAt||"").localeCompare(a.createdAt||""));
-      pending = rows.filter(isPending);
+      rows.forEach(r => { const t = TEAM.find(p => p.n === r.salesperson); if (t){ r.manager = r.manager || t.m || null; r.director = r.director || t.d || null; } });
+      pending = rows.filter(isOpen);
     } else {
       pending = (await apiPost({action:"queue"})).rows;
     }
@@ -349,7 +382,7 @@ function applyRole(){
   document.querySelectorAll(".admin-only").forEach(el => el.hidden = !isAdmin());
   $("tab-queue").textContent = isAdmin() ? "Orientations" : "To evaluate";
   $("who").textContent = `${auth.u} · ${isAdmin() ? "Full access" : "Evaluator"}`;
-  loaded = false; render();
+  loaded = false; qFilter = "all"; render();
   showTab(isAdmin() ? "dash" : "queue");
   refresh();
 }
@@ -388,6 +421,14 @@ $("questions").innerHTML = CRITERIA.map(c => `
 
 function readScores(){ const s = {}; CRITERIA.forEach(c => { const el = document.querySelector(`input[name="r-${c.k}"]:checked`); if (el) s[c.k] = Number(el.value); }); return s; }
 const attended = () => $("i-attend").value !== "no";
+const callResult = () => (document.querySelector('input[name="result"]:checked') || {}).value || "done";
+function applyResult(){
+  const reached = formMode !== "evaluate" || callResult() === "done";
+  $("feedback-block").hidden = !reached;
+  $("live-wrap").hidden = formMode === "create" || !reached;
+  if (formMode === "evaluate") $("btn-save").textContent = reached ? "Save · Completed" : "Save · Pending";
+}
+document.querySelectorAll('input[name="result"]').forEach(el => el.addEventListener("change", applyResult));
 function applyAttend(){ $("eval-block").hidden = !attended(); $("noshow-note").hidden = attended(); updateLive(); }
 $("i-attend").addEventListener("change", applyAttend);
 function updateLive(){
@@ -420,10 +461,11 @@ function openForm(mode, rec){
   $("details-block").hidden = mode === "evaluate";
   $("summary").hidden = mode !== "evaluate";
   $("eval-section").hidden = mode === "create"; $("live-wrap").hidden = mode === "create";
+  $("result-block").hidden = mode !== "evaluate";
   if (mode === "evaluate") $("summary").innerHTML = summaryHtml(rec);
   $("form-title").textContent = mode === "create" ? (editingId ? "Edit orientation" : "New orientation") : mode === "evaluate" ? "Evaluate orientation" : "Edit feedback";
   $("btn-save").textContent = mode === "create" ? (editingId ? "Save changes" : "Add to evaluation list") : mode === "evaluate" ? "Save evaluation" : "Save changes";
-  applyAttend(); showTab("form"); window.scrollTo({top:0});
+  applyResult(); applyAttend(); showTab("form"); window.scrollTo({top:0});
 }
 function summaryHtml(r){
   const late = daysSince(r.date) > OVERDUE_DAYS;
@@ -435,7 +477,8 @@ function summaryHtml(r){
     ${item("Project", esc(r.project))}
     ${item("Format", esc(r.format))}
     ${item("Call", `${esc(r.contact)}${r.phone ? ` · <span class="val" style="text-align:left;user-select:all">${esc(r.phone)}</span>` : ""}`)}
-  </div>`;
+  </div>
+  ${r.attempts ? `<div class="scale-note" style="margin-top:12px">${statusPill(r)} · ${r.attempts} previous attempt${r.attempts == 1 ? "" : "s"}${r.lastAttemptAt ? ` · last on ${esc(fmtDT(r.lastAttemptAt))}` : ""}</div>` : ""}`;
 }
 $("btn-new").addEventListener("click", () => openForm("create"));
 $("btn-back").addEventListener("click", () => showTab(lastTab));
@@ -451,7 +494,8 @@ $("fb-form").addEventListener("submit", async e => {
     const tm = TEAM.find(p => p.n === det.salesperson) || {};
     var details = {...det, manager:tm.m||null, director:tm.d||null, format:$("i-format").value, contact:$("i-contact").value.trim(), phone:$("i-phone").value.trim()};
   }
-  if (formMode !== "create"){
+  const reached = formMode !== "evaluate" || callResult() === "done";
+  if (formMode !== "create" && reached){
     const att = attended(), scores = att ? readScores() : {};
     if (att && Object.keys(scores).length < CRITERIA.length) missing.push(`${CRITERIA.length - Object.keys(scores).length} rating(s)`);
     var evaluation = {respondent:$("i-resp").value.trim(), role:$("i-role").value, channel:$("i-channel").value, attended:att, scores, note:$("i-note").value.trim(), score:att ? scoreOf({scores}) : 0};
@@ -459,13 +503,15 @@ $("fb-form").addEventListener("submit", async e => {
   if (missing.length){ $("form-err").textContent = "Please fill in: " + missing.join(", ") + "."; $("form-err").hidden = false; return; }
   $("form-err").hidden = true;
   const now = new Date().toISOString();
-  if (formMode === "create") body = editingId ? {action:"update", id:editingId, record:{...details, status:"Pending", updatedAt:now}} : {action:"create", record:{...details, createdAt:now, updatedAt:now}};
-  else if (formMode === "evaluate") body = {action:"evaluate", id:editingId, record:{...evaluation, updatedAt:now}};
-  else body = {action:"update", id:editingId, record:{...details, ...evaluation, status:"Evaluated", updatedAt:now}};
+  if (formMode === "create") body = editingId ? {action:"update", id:editingId, record:{...details, updatedAt:now}} : {action:"create", record:{...details, createdAt:now, updatedAt:now}};
+  else if (formMode === "evaluate") body = reached
+    ? {action:"evaluate", id:editingId, record:{...evaluation, updatedAt:now}}
+    : {action:"attempt", id:editingId, record:{reason:callResult(), note:$("i-note").value.trim(), updatedAt:now}};
+  else body = {action:"update", id:editingId, record:{...details, ...evaluation, status:"Completed", updatedAt:now}};
   $("btn-save").disabled = true;
   try{
     await apiPost(body);
-    toast(formMode === "create" ? (editingId ? "Orientation updated" : "Added to the evaluation list") : formMode === "evaluate" ? `Evaluation saved · score ${evaluation.score}` : "Feedback updated");
+    toast(body.action === "attempt" ? `Saved as Pending · ${REASONS[body.record.reason]}` : formMode === "create" ? (editingId ? "Orientation updated" : "Added to the list as New") : formMode === "evaluate" ? `Completed · score ${evaluation.score}` : "Feedback updated");
     const back = formMode === "edit" ? "log" : "queue";
     await refresh(); showTab(back);
   }catch(err){ handleWriteErr(err); }
@@ -480,27 +526,34 @@ function handleWriteErr(err){
 }
 
 /* ---------- queue ---------- */
-let qConfirm = null;
+let qConfirm = null, qFilter = "all";
 function renderQueue(){
   const el = $("queue-body");
+  const nNew = pending.filter(r => r.status === "New").length, nPend = pending.length - nNew;
   const late = pending.filter(r => daysSince(r.date) > OVERDUE_DAYS).length;
-  $("queue-sub").textContent = loaded ? `${pending.length} waiting${late ? ` · ${late} overdue (more than ${OVERDUE_DAYS} days)` : ""}` : "";
+  $("queue-sub").textContent = loaded ? `${nNew} new · ${nPend} pending${late ? ` · ${late} overdue (more than ${OVERDUE_DAYS} days)` : ""}` : "";
   if (!loaded){ el.innerHTML = `<div class="empty">Loading…</div>`; return; }
   if (!pending.length){ el.innerHTML = `<div class="empty"><strong>Nothing waiting</strong>${isAdmin() ? "Add an orientation with “New orientation”, or paste rows into the New orientations tab in the Google Sheet." : "New orientations will show up here as soon as they're added."}</div>`; return; }
-  el.innerHTML = `<div class="tbl-wrap"><table><thead><tr><th>Date</th><th>Broker company</th><th>Call</th><th>Salesperson</th><th>Project</th><th></th></tr></thead><tbody>
-  ${pending.map(r => { const d = daysSince(r.date); return `<tr>
+  const list = pending.filter(r => qFilter === "all" || r.status === qFilter);
+  const chip = (v, l, n) => `<button type="button" class="chip" data-qf="${v}" aria-pressed="${qFilter === v}">${l} · ${n}</button>`;
+  el.innerHTML = `<div class="chips">${chip("all","All",pending.length)}${chip("New","New",nNew)}${chip("Pending","Pending",nPend)}</div>` + (!list.length
+    ? `<div class="empty">No ${qFilter === "New" ? "new" : "pending"} orientations right now.</div>`
+    : `<div class="tbl-wrap"><table><thead><tr><th>Status</th><th>Date</th><th>Broker company</th><th>Call</th><th>Salesperson</th><th>Project</th><th></th></tr></thead><tbody>
+  ${list.map(r => { const d = daysSince(r.date); return `<tr>
+    <td>${statusPill(r)}${r.attempts ? `<div class="scale-note">${r.attempts} attempt${r.attempts == 1 ? "" : "s"}${r.lastAttemptAt ? ` · ${esc(fmtDT(r.lastAttemptAt))}` : ""}</div>` : ""}</td>
     <td class="n">${esc(r.date)}<div>${d > OVERDUE_DAYS ? `<span class="pill b-pr">Overdue · ${d}d</span>` : d >= 0 ? `<span class="scale-note">${d === 0 ? "today" : d + "d ago"}</span>` : `<span class="scale-note">upcoming</span>`}</div></td>
     <td>${esc(r.broker)}<div class="scale-note">${esc(r.format||"")}</div></td>
     <td>${esc(r.contact)||"—"}${r.phone ? `<div class="val" style="text-align:left;user-select:all">${esc(r.phone)}</div>` : ""}</td>
     <td>${esc(r.salesperson)}</td><td>${esc(r.project)}</td>
-    <td style="white-space:nowrap"><button class="btn primary" data-eval="${esc(r.id)}">Evaluate</button>${isAdmin() ? (qConfirm === r.id
+    <td style="white-space:nowrap"><button class="btn primary" data-eval="${esc(r.id)}">${r.status === "Pending" ? "Call again" : "Evaluate"}</button>${isAdmin() ? (qConfirm === r.id
       ? `<span class="confirm">Delete?<button class="btn ghost danger" data-qdel="${esc(r.id)}">Delete</button><button class="btn ghost" data-qkeep>Keep</button></span>`
       : `<button class="btn ghost" data-qedit="${esc(r.id)}">Edit</button><button class="btn ghost danger" data-qask="${esc(r.id)}">Delete</button>`) : ""}</td></tr>`; }).join("")}
-  </tbody></table></div>`;
+  </tbody></table></div>`);
 }
 $("queue-body").addEventListener("click", async e => {
   const t = e.target.closest("button"); if (!t) return;
   const find = id => pending.find(r => r.id === id);
+  if (t.dataset.qf){ qFilter = t.dataset.qf; renderQueue(); return; }
   if (t.dataset.eval) openForm("evaluate", find(t.dataset.eval));
   if (t.dataset.qedit) openForm("create", find(t.dataset.qedit));
   if (t.dataset.qask){ qConfirm = t.dataset.qask; renderQueue(); }
@@ -510,16 +563,17 @@ $("queue-body").addEventListener("click", async e => {
 $("btn-qrefresh").addEventListener("click", async () => { $("btn-qrefresh").disabled = true; await refresh(); $("btn-qrefresh").disabled = false; toast("List refreshed"); });
 
 /* ---------- filters ---------- */
-["f-period","f-sales","f-project","f-broker"].forEach(id => $(id).addEventListener("change", render));
+["f-period","f-director","f-manager","f-sales","f-project","f-broker"].forEach(id => $(id).addEventListener("change", render));
 $("search").addEventListener("input", renderLog);
 function filtered(){
+  const dr = $("f-director").value, mg = $("f-manager").value;
   const p = $("f-period").value, s = $("f-sales").value, pr = $("f-project").value, b = $("f-broker").value;
   const now = new Date(), t = today();
   let from = "";
   if (p === "30" || p === "90"){ const d = new Date(now - Number(p)*864e5); from = d.toISOString().slice(0,10); }
   if (p === "month") from = t.slice(0,8) + "01";
   if (p === "year") from = t.slice(0,5) + "01-01";
-  return done().filter(r => (!from || (r.date||"") >= from) && (!s || r.salesperson === s) && (!pr || r.project === pr) && (!b || r.broker === b));
+  return done().filter(r => (!from || (r.date||"") >= from) && (!dr || r.director === dr) && (!mg || r.manager === mg) && (!s || r.salesperson === s) && (!pr || r.project === pr) && (!b || r.broker === b));
 }
 function fillSelect(id, values, allLabel){
   const el = $(id), cur = el.value;
@@ -533,11 +587,15 @@ function groupBy(list, key){
   const m = new Map(); list.forEach(r => { const k = r[key] || "—"; if (!m.has(k)) m.set(k, []); m.get(k).push(r); });
   return [...m.entries()].map(([name, rs]) => {
     const crit = CRITERIA.map(c => ({c, v:avg(rs.map(r => Number(r.scores?.[c.k])).filter(Boolean))})).filter(x => x.v != null).sort((a,b)=>a.v-b.v);
-    return {name, n:rs.length, score:Math.round(avg(rs.map(r => r.score ?? scoreOf(r)).filter(v=>v!=null))), weakest:crit[0], last:rs.map(r=>r.date).sort().pop()};
+    const dirs = [...new Set(rs.map(r => r.director).filter(Boolean))];
+    return {name, n:rs.length, score:Math.round(avg(rs.map(r => r.score ?? scoreOf(r)).filter(v=>v!=null))), weakest:crit[0], last:rs.map(r=>r.date).sort().pop(),
+      att:Math.round(rs.filter(r => r.attended !== false).length / rs.length * 100), people:new Set(rs.map(r => r.salesperson)).size, dir:dirs.join(", ")};
   }).sort((a,b)=>b.score-a.score);
 }
 function render(){
   if (isAdmin()){
+    fillSelect("f-director", uniq("director"), "All directors");
+    fillSelect("f-manager", uniq("manager"), "All managers");
     fillSelect("f-sales", uniq("salesperson"), "All salespeople");
     fillSelect("f-project", uniq("project"), "All projects");
     fillSelect("f-broker", uniq("broker"), "All broker companies");
@@ -547,16 +605,17 @@ function render(){
   renderQueue();
 }
 function pendingCard(){
+  const nNew = pending.filter(r => r.status === "New").length, nPend = pending.length - nNew;
   const late = pending.filter(r => daysSince(r.date) > OVERDUE_DAYS).length;
   const lags = done().filter(r => r.evaluatedAt && r.date).map(r => Math.max(0, (new Date(r.evaluatedAt) - new Date(r.date)) / 864e5));
   const lag = lags.length ? avg(lags).toFixed(1) : null;
-  return `<div class="card kpi"><h3>Waiting for evaluation</h3><div class="num">${pending.length}</div><div class="note">${late ? `<span class="pill b-pr">${late} overdue</span> ` : ""}${lag != null ? `avg ${lag} days to evaluate` : `<a href="#" id="go-queue">Open the list</a>`}</div></div>`;
+  return `<div class="card kpi"><h3>Open orientations</h3><div class="num">${pending.length}</div><div class="note">${nNew} new · ${nPend} pending${late ? ` · <span class="pill b-pr">${late} overdue</span>` : ""}${lag != null ? `<br>avg ${lag} days to complete` : ""} · <a href="#" id="go-queue">Open list</a></div></div>`;
 }
 function renderDash(){
   const el = $("dash-body");
   if (!loaded){ el.innerHTML = `<div class="card empty"><strong>Loading feedback…</strong>Connecting to the team's records.</div>`; return; }
   if (!done().length){
-    el.innerHTML = `<div class="kpis">${pendingCard()}</div><div class="card empty" style="margin-top:16px"><strong>No evaluations yet</strong>Add orientations to the evaluation list. Once the evaluator rates them, scores by salesperson, broker company and criterion will appear here.<div style="margin-top:16px"><button class="btn primary" id="go-new">New orientation</button></div></div>`;
+    el.innerHTML = `<div class="kpis">${pendingCard()}</div><div class="card empty" style="margin-top:16px"><strong>No evaluations yet</strong>Add orientations to the list. Once the evaluator completes them, scores by salesperson, broker company and criterion will appear here.<div style="margin-top:16px"><button class="btn primary" id="go-new">New orientation</button></div></div>`;
     $("go-new").addEventListener("click", () => openForm("create")); bindGoQueue(); return;
   }
   const list = filtered();
@@ -589,9 +648,21 @@ function renderDash(){
       </div>
     </div>
     <div class="card">
+      <div class="card-head"><h2>By director</h2><span class="scale-note">sorted by average score</span></div>
+      <div class="tbl-wrap"><table><thead><tr><th>Director</th><th>Salespeople</th><th>Evaluated</th><th>Score</th><th>Rating</th><th>Sales attendance</th><th>Weakest criterion</th></tr></thead><tbody>
+      ${groupBy(list,"director").map(g => `<tr><td>${esc(g.name)}</td><td class="n">${g.people}</td><td class="n">${g.n}</td><td class="n">${g.score}</td><td>${pill(g.score)}</td><td class="n">${g.att}%</td><td>${g.weakest?`${g.weakest.c.t} <span class="val">${g.weakest.v.toFixed(1)}</span>`:"—"}</td></tr>`).join("")}
+      </tbody></table></div>
+    </div>
+    <div class="card">
+      <div class="card-head"><h2>By manager</h2><span class="scale-note">sorted by average score</span></div>
+      <div class="tbl-wrap"><table><thead><tr><th>Manager</th><th>Director</th><th>Salespeople</th><th>Evaluated</th><th>Score</th><th>Rating</th><th>Sales attendance</th><th>Weakest criterion</th></tr></thead><tbody>
+      ${groupBy(list,"manager").map(g => `<tr><td>${esc(g.name)}</td><td>${esc(g.dir)||"—"}</td><td class="n">${g.people}</td><td class="n">${g.n}</td><td class="n">${g.score}</td><td>${pill(g.score)}</td><td class="n">${g.att}%</td><td>${g.weakest?`${g.weakest.c.t} <span class="val">${g.weakest.v.toFixed(1)}</span>`:"—"}</td></tr>`).join("")}
+      </tbody></table></div>
+    </div>
+    <div class="card">
       <div class="card-head"><h2>By salesperson</h2><span class="scale-note">sorted by average score</span></div>
-      <div class="tbl-wrap"><table><thead><tr><th>Salesperson</th><th>Evaluated</th><th>Score</th><th>Rating</th><th>Weakest criterion</th><th>Last orientation</th></tr></thead><tbody>
-      ${groupBy(list,"salesperson").map(g => `<tr><td>${esc(g.name)}</td><td class="n">${g.n}</td><td class="n">${g.score}</td><td>${pill(g.score)}</td><td>${g.weakest?`${g.weakest.c.t} <span class="val">${g.weakest.v.toFixed(1)}</span>`:"—"}</td><td class="n">${esc(g.last||"")}</td></tr>`).join("")}
+      <div class="tbl-wrap"><table><thead><tr><th>Salesperson</th><th>Manager</th><th>Evaluated</th><th>Score</th><th>Rating</th><th>Weakest criterion</th><th>Last orientation</th></tr></thead><tbody>
+      ${groupBy(list,"salesperson").map(g => `<tr><td>${esc(g.name)}</td><td>${esc((TEAM.find(p => p.n === g.name) || {}).m || "")||"—"}</td><td class="n">${g.n}</td><td class="n">${g.score}</td><td>${pill(g.score)}</td><td>${g.weakest?`${g.weakest.c.t} <span class="val">${g.weakest.v.toFixed(1)}</span>`:"—"}</td><td class="n">${esc(g.last||"")}</td></tr>`).join("")}
       </tbody></table></div>
     </div>
     <div class="grid2">
@@ -652,9 +723,9 @@ $("log-body").addEventListener("click", async e => {
   if (t.dataset.del){ try{ await apiPost({action:"delete", id:t.dataset.del}); toast("Record deleted"); confirmId = null; await refresh(); }catch(err){ handleWriteErr(err); } }
 });
 $("btn-export").addEventListener("click", () => {
-  const head = ["Date","Broker company","Salesperson","Project","Format","Broker contact","Contact phone","Feedback given by","Role","Collected via","Attended",...CRITERIA.map(c=>c.t),"Score","Rating","Notes","Evaluated by","Evaluated at"];
+  const head = ["Date","Broker company","Salesperson","Manager","Director","Project","Format","Broker contact","Contact phone","Feedback given by","Role","Collected via","Attended",...CRITERIA.map(c=>c.t),"Score","Rating","Notes","Evaluated by","Evaluated at"];
   const q = v => `"${String(v ?? "").replace(/"/g,'""')}"`;
-  const lines = [head.map(q).join(",")].concat(done().map(r => { const sc = r.score ?? scoreOf(r) ?? 0; return [r.date,r.broker,r.salesperson,r.project,r.format,r.contact,r.phone,r.respondent,r.role,r.channel,r.attended===false?"No":"Yes",...CRITERIA.map(c=>r.scores?.[c.k]),sc,r.attended===false?"No-show":band(sc).l,r.note,r.loggedBy,r.evaluatedAt].map(q).join(","); }));
+  const lines = [head.map(q).join(",")].concat(done().map(r => { const sc = r.score ?? scoreOf(r) ?? 0; return [r.date,r.broker,r.salesperson,r.manager,r.director,r.project,r.format,r.contact,r.phone,r.respondent,r.role,r.channel,r.attended===false?"No":"Yes",...CRITERIA.map(c=>r.scores?.[c.k]),sc,r.attended===false?"No-show":band(sc).l,r.note,r.loggedBy,r.evaluatedAt].map(q).join(","); }));
   const url = URL.createObjectURL(new Blob(["﻿"+lines.join("\n")], {type:"text/csv;charset=utf-8"}));
   const a = document.createElement("a"); a.href = url; a.download = `orientation-feedback-${today()}.csv`; document.body.appendChild(a); a.click(); a.remove();
   setTimeout(() => URL.revokeObjectURL(url), 1000);
