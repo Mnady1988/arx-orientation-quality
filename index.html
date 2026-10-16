@@ -134,6 +134,54 @@ label.rate input:checked + span{background:var(--accent);border-color:var(--acce
 .actions{display:flex;gap:10px;flex-wrap:wrap;align-items:center;justify-content:flex-end;margin-top:18px}
 .empty{text-align:center;padding:40px 16px;color:var(--muted)}
 .empty strong{display:block;color:var(--fg);font-family:var(--display);font-size:1.2rem;margin-bottom:6px}
+.rate-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,150px),1fr));gap:10px}
+.rate-tile{all:unset;box-sizing:border-box;cursor:pointer;display:grid;gap:6px;padding:14px;border-radius:var(--r);border:1px solid var(--line);background:var(--surface);border-top:4px solid var(--rc)}
+.rate-tile:hover{background:var(--sunken)}
+.rate-tile:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.rate-tile .rt-label{font-size:.8rem;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.06em}
+.rate-tile .rt-num{font-family:var(--display);font-size:1.9rem;font-weight:700;line-height:1;font-variant-numeric:tabular-nums}
+.rate-tile .rt-pct{font-size:.85rem;color:var(--muted)}
+.rate-tile .rt-bar{height:6px;border-radius:99px;background:var(--sunken);overflow:hidden}
+.rate-tile .rt-bar i{display:block;height:100%;background:var(--rc)}
+.rate-tile.is-empty{opacity:.55;cursor:default}
+.rec-bar{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-bottom:12px}
+.rec-note{font-size:.85rem;color:var(--muted)}
+#sc-modal .sc-wrap{max-width:820px;width:100%;max-height:calc(100vh - 32px);overflow:auto;background:var(--surface);border-radius:var(--r);padding:16px}
+#print-area{display:none}
+/* scorecard: a paper document, light in both themes */
+.sc{background:#fff;color:#0f2233;font-family:var(--body);border:1px solid #d2dde6;border-radius:6px;overflow:hidden}
+.sc-head{background:#045a8d;color:#fff;padding:18px 22px;display:flex;align-items:center;gap:18px;border-bottom:4px solid #e3a02d;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+.sc-head img{height:46px}
+.sc-head .t{font-family:var(--display);font-size:1.3rem;font-weight:700}
+.sc-head .s{font-size:.8rem;color:#e3a02d;letter-spacing:.12em;text-transform:uppercase;font-weight:600}
+.sc-body{padding:20px 22px;display:grid;gap:18px}
+.sc-top{display:grid;grid-template-columns:minmax(0,1fr) 170px;gap:18px;align-items:start}
+.sc-score{border:1px solid #d2dde6;border-radius:8px;padding:14px;text-align:center}
+.sc-score .big{font-family:var(--display);font-size:2.6rem;font-weight:700;line-height:1}
+.sc-score .of{color:#526779;font-size:.9rem}
+.sc-pill{display:inline-block;margin-top:8px;padding:3px 10px;border-radius:99px;font-weight:600;font-size:.8rem;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+.sc-meta{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px 16px}
+.sc-meta .k{font-size:.7rem;color:#526779;text-transform:uppercase;letter-spacing:.06em;font-weight:600}
+.sc-meta .v{font-size:.92rem}
+.sc h4{margin:0 0 8px;font-family:var(--display);font-size:1rem;color:#045a8d}
+.sc table{width:100%;border-collapse:collapse;font-size:.88rem}
+.sc td{padding:8px 6px;border-bottom:1px solid #e4ecf2;vertical-align:top}
+.sc td small{display:block;color:#526779;font-size:.76rem}
+.sc .dots{display:inline-flex;gap:3px;vertical-align:middle}
+.sc .dots i{width:14px;height:14px;border-radius:3px;background:#e4ecf2;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+.sc .dots i.on{background:#045a8d}
+.sc .noshow{padding:12px 14px;border-radius:8px;background:#f9e1de;color:#7d231c;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+.sc .notes{padding:12px 14px;border-radius:8px;background:#f1f5f8;min-height:44px;white-space:pre-wrap;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+.sc-foot{font-size:.75rem;color:#526779;display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;border-top:1px solid #e4ecf2;padding-top:10px}
+@media (max-width:560px){.sc-top{grid-template-columns:1fr}.sc-meta{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media print{
+  @page{size:A4;margin:10mm}
+  body > *:not(#print-area){display:none!important}
+  #print-area{display:block!important}
+  html,body{background:#fff!important}
+  .sc{border:none;border-radius:0;break-after:page;page-break-after:always}
+  .sc:last-child{break-after:auto;page-break-after:auto}
+}
 .toast{position:fixed;left:50%;bottom:calc(20px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:var(--fg);color:var(--bg);padding:10px 16px;border-radius:8px;font-weight:500;z-index:10;max-width:calc(100% - 32px)}
 .banner{padding:10px 14px;border-radius:8px;background:var(--warn-soft);color:var(--fg);font-size:.9rem}
 .trend{width:100%;height:auto;display:block}
@@ -275,7 +323,8 @@ label.rate input:checked + span{background:var(--accent);border-color:var(--acce
   <section class="panel" id="p-log" hidden>
     <div class="card">
       <div class="card-head"><h2>Evaluated orientations</h2>
-        <div style="display:flex;gap:8px;flex-wrap:wrap"><input id="search" placeholder="Search broker, salesperson, project…" style="width:260px;max-width:100%"><button class="btn" id="btn-refresh">Refresh</button><button class="btn" id="btn-export" hidden>Export CSV</button></div></div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap"><input id="search" placeholder="Search broker, salesperson, project…" style="width:260px;max-width:100%"><button class="btn" id="btn-refresh">Refresh</button><button class="btn" id="btn-export" hidden>Export CSV</button><button class="btn primary" id="btn-sc-all" hidden>Print scorecards</button></div></div>
+      <div id="rec-bar" class="rec-bar"></div>
       <div id="log-body"></div>
     </div>
   </section>
@@ -310,6 +359,13 @@ label.rate input:checked + span{background:var(--accent);border-color:var(--acce
     <div class="actions" style="margin-top:14px"><button type="button" class="btn" id="pend-cancel">Cancel</button><button type="submit" class="btn primary" id="pend-save">Save as Pending</button></div>
   </form>
 </div>
+<div class="modal" id="sc-modal" hidden role="dialog" aria-modal="true" aria-label="Scorecard">
+  <div class="sc-wrap">
+    <div id="sc-view"></div>
+    <div class="actions" style="margin-top:12px"><button type="button" class="btn" id="sc-close">Close</button><button type="button" class="btn primary" id="sc-print">Print / Save as PDF</button></div>
+  </div>
+</div>
+<div id="print-area"></div>
 <div class="toast" id="toast" hidden></div>
 
 <script>
@@ -402,7 +458,7 @@ function applyRole(){
   document.querySelectorAll(".admin-only").forEach(el => el.hidden = !isAdmin());
   $("tab-queue").textContent = isAdmin() ? "Orientations" : "To evaluate";
   $("who").textContent = `${auth.u} · ${isAdmin() ? "Full access" : "Evaluator"}`;
-  loaded = false; qFilter = "all"; render();
+  loaded = false; qFilter = "all"; recRating = ""; recFromDash = false; render();
   showTab(isAdmin() ? "dash" : "queue");
   refresh();
 }
@@ -686,6 +742,10 @@ function renderDash(){
       <div class="card kpi"><h3>Sales attendance</h3><div class="num">${attendPct}<small>%</small></div><div class="note">${att.length} of ${list.length} orientations attended</div></div>
       ${pendingCard()}
     </div>
+    <div class="card">
+      <div class="card-head"><h2>Ratings breakdown</h2><span class="scale-note">click a rating to see those calls</span></div>
+      ${rateTiles(list)}
+    </div>
     <div class="grid2">
       <div class="card">
         <div class="card-head"><h2>Score by criterion</h2><span class="scale-note">average rating out of 5</span></div>
@@ -728,6 +788,19 @@ function renderDash(){
   </div>`;
   bindGoQueue();
 }
+const RATE_ORDER = [
+  {l:"Excellent", c:"var(--good)"}, {l:"Good", c:"var(--accent)"}, {l:"Needs improvement", c:"var(--warn)"}, {l:"Poor", c:"var(--bad)"}, {l:"No-show", c:"var(--muted)"}];
+const rateOf = r => r.attended === false ? "No-show" : band(r.score ?? scoreOf(r) ?? 0).l;
+function rateTiles(list){
+  const n = list.length || 1;
+  return `<div class="rate-grid">${RATE_ORDER.map(o => { const k = list.filter(r => rateOf(r) === o.l).length; const pct = Math.round(k / n * 100);
+    return `<button type="button" class="rate-tile${k ? "" : " is-empty"}" style="--rc:${o.c}" data-rate="${o.l}" ${k ? "" : 'aria-disabled="true"'}>
+      <span class="rt-label">${o.l}</span><span class="rt-num">${k}</span><span class="rt-pct">${pct}% of calls</span><span class="rt-bar"><i style="width:${pct}%"></i></span></button>`; }).join("")}</div>`;
+}
+$("dash-body").addEventListener("click", e => {
+  const t = e.target.closest("[data-rate]"); if (!t || t.classList.contains("is-empty")) return;
+  recRating = t.dataset.rate; recFromDash = true; $("search").value = ""; renderLog(); showTab("log"); window.scrollTo({top:0});
+});
 function bindGoQueue(){ const a = $("go-queue"); if (a) a.addEventListener("click", e => { e.preventDefault(); showTab("queue"); }); }
 function trendSvg(list){
   const months = []; const d = new Date(); d.setDate(1);
@@ -746,13 +819,19 @@ function trendSvg(list){
 }
 
 /* ---------- records (evaluated) ---------- */
-let confirmId = null;
+let confirmId = null, recRating = "", recFromDash = false, recList = [];
 function renderLog(){
-  const el = $("log-body"), all = done();
-  $("btn-export").hidden = !all.length;
-  if (!loaded){ el.innerHTML = `<div class="empty">Loading…</div>`; return; }
+  const el = $("log-body"), base = recFromDash ? filtered() : done();
+  $("btn-export").hidden = !done().length;
+  if (!loaded){ el.innerHTML = `<div class="empty">Loading…</div>`; $("rec-bar").innerHTML = ""; return; }
   const q = $("search").value.trim().toLowerCase();
-  const list = all.filter(r => !q || [r.broker,r.salesperson,r.project,r.respondent,r.note,r.loggedBy].join(" ").toLowerCase().includes(q));
+  const searched = base.filter(r => !q || [r.broker,r.salesperson,r.project,r.respondent,r.note,r.loggedBy].join(" ").toLowerCase().includes(q));
+  const list = searched.filter(r => !recRating || rateOf(r) === recRating);
+  const all = done(); recList = list;
+  $("btn-sc-all").hidden = !list.length;
+  $("btn-sc-all").textContent = `Print scorecards (${list.length})`;
+  const chip = (v, l) => `<button type="button" class="chip" data-rf="${v}" aria-pressed="${recRating === v}">${l} · ${v ? searched.filter(r => rateOf(r) === v).length : searched.length}</button>`;
+  $("rec-bar").innerHTML = chip("", "All") + RATE_ORDER.map(o => chip(o.l, o.l)).join("") + (recFromDash ? `<span class="rec-note">Dashboard filters applied · <a href="#" id="rec-clear">show all records</a></span>` : "");
   if (!list.length){ el.innerHTML = `<div class="empty"><strong>${all.length?"No matching records":"No evaluations yet"}</strong>${all.length?"Try a different search.":"Evaluated orientations will be listed here, newest first."}</div>`; return; }
   el.innerHTML = `<div class="tbl-wrap"><table><thead><tr><th>Date</th><th>Broker company</th><th>Salesperson</th><th>Project</th><th>Score</th><th>Notes</th><th></th></tr></thead><tbody>
   ${list.map(r => { const sc = r.score ?? scoreOf(r) ?? 0; return `<tr>
@@ -762,11 +841,16 @@ function renderLog(){
     <td class="n">${sc} ${r.attended===false?`<span class="pill b-pr">No-show</span>`:pill(sc)}${r.loggedBy?`<div class="scale-note">by ${esc(r.loggedBy)}</div>`:""}</td><td><div class="comment">${esc(r.note)||"—"}</div></td>
     <td style="white-space:nowrap">${confirmId===r.id
       ? `<span class="confirm">Delete?<button class="btn ghost danger" data-del="${esc(r.id)}">Delete</button><button class="btn ghost" data-nodel>Keep</button></span>`
-      : `<button class="btn ghost" data-edit="${esc(r.id)}">Edit</button><button class="btn ghost danger" data-ask="${esc(r.id)}">Delete</button>`}</td></tr>`; }).join("")}
+      : `<button class="btn ghost" data-sc="${esc(r.id)}">Scorecard</button><button class="btn ghost" data-edit="${esc(r.id)}">Edit</button><button class="btn ghost danger" data-ask="${esc(r.id)}">Delete</button>`}</td></tr>`; }).join("")}
   </tbody></table></div>`;
 }
+$("rec-bar").addEventListener("click", e => {
+  if (e.target.id === "rec-clear"){ e.preventDefault(); recFromDash = false; recRating = ""; renderLog(); return; }
+  const t = e.target.closest("[data-rf]"); if (!t) return; recRating = t.dataset.rf; renderLog();
+});
 $("log-body").addEventListener("click", async e => {
   const t = e.target.closest("button"); if (!t) return;
+  if (t.dataset.sc){ openScorecard(rows.find(r => r.id === t.dataset.sc)); return; }
   if (t.dataset.edit) openForm("edit", rows.find(r => r.id === t.dataset.edit));
   if (t.dataset.ask){ confirmId = t.dataset.ask; renderLog(); }
   if (t.hasAttribute("data-nodel")){ confirmId = null; renderLog(); }
@@ -781,6 +865,50 @@ $("btn-export").addEventListener("click", () => {
   setTimeout(() => URL.revokeObjectURL(url), 1000);
 });
 $("btn-refresh").addEventListener("click", async () => { $("btn-refresh").disabled = true; await refresh(); $("btn-refresh").disabled = false; toast("Refreshed from Google Sheet"); });
+
+/* ---------- scorecards ---------- */
+const LOGO_SRC = (document.querySelector(".brand img") || {}).src || "";
+const fmtDate = iso => { if (!iso) return ""; const d = new Date(iso); return isNaN(d) ? String(iso) : d.toLocaleString("en-GB", {day:"2-digit", month:"short", year:"numeric", hour:"2-digit", minute:"2-digit"}); };
+const RATE_COL = {"Excellent":["#dff2e7","#17804a"], "Good":["#dfecf5","#045a8d"], "Needs improvement":["#fbeed6","#a86400"], "Poor":["#f9e1de","#c0352b"], "No-show":["#f9e1de","#c0352b"]};
+function scorecardHtml(r){
+  const sc = r.score ?? scoreOf(r) ?? 0, rt = rateOf(r), [bg, fg] = RATE_COL[rt];
+  const t = TEAM.find(p => p.n === r.salesperson) || {};
+  const m = (k, v) => `<div><div class="k">${k}</div><div class="v">${esc(v) || "—"}</div></div>`;
+  return `<article class="sc">
+    <div class="sc-head">${LOGO_SRC ? `<img src="${LOGO_SRC}" alt="ARX Development">` : ""}<div><div class="s">Broker orientation</div><div class="t">Quality scorecard</div></div></div>
+    <div class="sc-body">
+      <div class="sc-top">
+        <div class="sc-meta">
+          ${m("Salesperson", r.salesperson)}${m("Manager", r.manager || t.m)}${m("Director", r.director || t.d)}
+          ${m("Broker company", r.broker)}${m("Project", r.project)}${m("Orientation date", r.date)}
+          ${m("Format", r.format)}${m("Feedback given by", [r.respondent, r.role].filter(Boolean).join(" · "))}${m("Collected via", r.channel)}
+        </div>
+        <div class="sc-score"><div class="big">${sc}</div><div class="of">out of 100</div><span class="sc-pill" style="background:${bg};color:${fg}">${rt}</span></div>
+      </div>
+      <section><h4>Broker ratings</h4>
+        ${r.attended === false ? `<div class="noshow"><strong>The salesperson did not attend this orientation.</strong> The ratings were skipped and the score is 0.</div>`
+          : `<table>${CRITERIA.map(c => { const v = Number(r.scores?.[c.k]) || 0; return `<tr><td>${c.t}<small>${c.d}</small></td><td style="white-space:nowrap;text-align:right"><span class="dots">${[1,2,3,4,5].map(n => `<i class="${n <= v ? "on" : ""}"></i>`).join("")}</span> <strong>${v || "–"}</strong>/5</td></tr>`; }).join("")}</table>`}
+      </section>
+      <section><h4>Notes</h4><div class="notes">${esc(r.note) || "No notes."}</div></section>
+      <div class="sc-foot"><span>Evaluated by ${esc(r.loggedBy) || "—"}${r.evaluatedAt ? ` on ${esc(fmtDate(r.evaluatedAt))}` : ""}</span><span>Ref ${esc(String(r.id || "").slice(0, 8))}</span></div>
+    </div>
+  </article>`;
+}
+let scCurrent = null;
+function openScorecard(r){ if (!r) return; scCurrent = r; $("sc-view").innerHTML = scorecardHtml(r); $("sc-modal").hidden = false; $("sc-print").focus(); }
+function closeScorecard(){ $("sc-modal").hidden = true; scCurrent = null; }
+function printScorecards(list){
+  if (!list.length) return;
+  $("print-area").innerHTML = list.map(scorecardHtml).join("");
+  const imgs = [...$("print-area").querySelectorAll("img")];
+  Promise.all(imgs.map(i => i.complete ? 1 : new Promise(res => { i.onload = i.onerror = res; }))).then(() => setTimeout(() => window.print(), 50));
+}
+window.addEventListener("afterprint", () => { $("print-area").innerHTML = ""; });
+$("sc-close").addEventListener("click", closeScorecard);
+$("sc-modal").addEventListener("click", e => { if (e.target === $("sc-modal")) closeScorecard(); });
+document.addEventListener("keydown", e => { if (e.key === "Escape" && !$("sc-modal").hidden) closeScorecard(); });
+$("sc-print").addEventListener("click", () => { if (scCurrent) printScorecards([scCurrent]); });
+$("btn-sc-all").addEventListener("click", () => printScorecards(recList));
 
 /* ---------- guide ---------- */
 $("guide-bands").innerHTML = BANDS.map((b,i) => `<li><span><span class="pill ${b.c}">${b.l}</span><div class="val" style="text-align:left;margin-top:4px">${i===0?"85–100":`${b.min}–${BANDS[i-1].min-1}`}</div></span><span>${b.d}</span></li>`).join("");
